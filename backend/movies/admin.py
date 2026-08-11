@@ -1,3 +1,10 @@
-# pyrefly: ignore [missing-import]
+from django.contrib import admin
 
-# Register your models here.
+from .models import CastCredit, CrewCredit, Genre, Movie, Person
+
+
+admin.site.register(CastCredit)
+admin.site.register(CrewCredit)
+admin.site.register(Genre)
+admin.site.register(Movie)
+admin.site.register(Person)

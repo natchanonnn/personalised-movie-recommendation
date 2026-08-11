@@ -7,3 +7,4 @@ drf-yasg==1.21.15
 psycopg2-binary==2.9.12
 pyjwt==2.13.0
 sqlparse==0.5.5
+tqdm==4.70.0
