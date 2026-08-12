@@ -42,6 +42,7 @@ urlpatterns = [
 
     # Accounts authentication endpoints
     path("v1/accounts/", include("accounts.urls")),
+    path("v1/interactions/", include("interactions.urls")),
 
     # JWT Authentication endpoints
     path('v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
