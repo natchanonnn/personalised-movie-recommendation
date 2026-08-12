@@ -21,6 +21,13 @@ while True:
     except OverflowError:
         _max_field_size //= 10
 
+def clean_long(text: str, max_len: int = 300) -> str:
+    """Clean up long text fields."""
+    if text is None:
+        return ""
+    if len(text) > max_len:
+        return text[:max_len]
+    return text
 
 def parse_json_field(raw):
     """List/dict-valued columns in this dataset are JSON-looking strings.
@@ -61,10 +68,15 @@ class Command(BaseCommand):
             "--limit", type=int, default=None,
             help="Only process the first N rows (useful for a quick test run)",
         )
+        parser.add_argument(
+            "--skip", type=int, default=0,
+            help="Skip the first N rows (useful for resuming an interrupted run)",
+        )
 
     def handle(self, *args, **options):
         path = options["movies_csv"]
         limit = options["limit"]
+        skip = options["skip"]
 
         movie_count = 0
         cast_count = 0
@@ -73,6 +85,8 @@ class Command(BaseCommand):
         with open(path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for i, row in tqdm(enumerate(reader)):
+                if skip is not None and i < skip:
+                    continue
                 if limit is not None and i >= limit:
                     break
                 c, r = self._import_row(row)
@@ -93,7 +107,7 @@ class Command(BaseCommand):
         # the first listed country. Co-productions lose everything after that.
         countries = parse_json_field(row.get("production_countries", ""))
         country = countries[0]["name"] if countries else ""
-
+        
         movie, _created = Movie.objects.update_or_create(
             tmdb_id=tmdb_id,
             defaults={
@@ -140,7 +154,7 @@ class Command(BaseCommand):
                 continue
             person, _ = Person.objects.get_or_create(name=name)
             CastCredit.objects.update_or_create(
-                movie=movie, person=person, character_name=(entry.get("character") or "").strip(),
+                movie=movie, person=person, character_name=clean_long((entry.get("character") or "").strip()),
                 defaults={"billing_order": entry.get("order")},
             )
             created += 1
