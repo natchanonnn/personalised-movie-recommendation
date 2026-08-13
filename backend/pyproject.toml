@@ -1,0 +1,31 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "asgiref==3.12.1",
+    "django==5.2.17",
+    "django-cors-headers==4.9.0",
+    "django-stubs==6.0.9",
+    "djangorestframework==3.18.0",
+    "djangorestframework-simplejwt==5.5.1",
+    "drf-yasg==1.21.15",
+    "psycopg2-binary==2.9.12",
+    "pyjwt==2.13.0",
+    "sqlparse==0.5.5",
+    "tqdm==4.70.0",
+]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
+
+[dependency-groups]
+dev = [
+    "pyrefly>=1.2.0",
+    "ruff>=0.16.2",
+]
