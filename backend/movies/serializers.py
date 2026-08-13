@@ -14,4 +14,22 @@ class MovieSearchResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Movie
-        fields = ["id", "tmdb_id", "title", "release_date", "genres", "tmdb_vote_average"]
+        fields = ["id", "tmdb_id", "title", "release_date", "genres", "tmdb_vote_average", "backdrop_path"]
+
+
+class MovieDetailSerializer(serializers.ModelSerializer):
+    genres = GenreSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Movie
+        fields = [
+            "id",
+            "tmdb_id",
+            "title",
+            "release_date",
+            "duration_minutes",
+            "genres",
+            "tmdb_vote_average",
+            "backdrop_path",
+            "synopsis",
+        ]

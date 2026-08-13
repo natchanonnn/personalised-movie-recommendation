@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import read_dotenv
+
+read_dotenv(override=True)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
     'movies',
     'accounts',
     'interactions',
+    'recommendations',
 ]
 
 MIDDLEWARE = [
@@ -71,10 +76,40 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+# Recommendation service (FastAPI, see /recommendation)
+RECOMMENDATION_SERVICE_URL = os.environ.get("RECOMMENDATION_SERVICE_URL", "http://localhost:8080")
+RECOMMENDATION_SERVICE_TIMEOUT = float(os.environ.get("RECOMMENDATION_SERVICE_TIMEOUT", "5"))
+
+# Pin recommendations to a single algorithm/variant (e.g. "collaborative",
+# "hybrid_content", "pure_content" -- see recommendation/app/core/config.py)
+RECOMMENDATION_SERVICE_VARIANT = os.environ.get("RECOMMENDATION_SERVICE_VARIANT") or "collaborative"
+
+# How many items GET /v1/recommendations/ returns when the caller doesn't
+# pass ?k=, and the upper bound it's clamped to when they do.
+RECOMMENDATION_DEFAULT_K = int(os.environ.get("RECOMMENDATION_DEFAULT_K", "10"))
+RECOMMENDATION_MAX_K = int(os.environ.get("RECOMMENDATION_MAX_K", "100"))
+
+# How long a computed recommendation set is cached for, keyed on
+# (user, rating history, k, variant) -- see recommendations/views.py. A new
+# rating changes the key automatically, so this TTL only bounds staleness
+# from other factors (catalog changes, a redeployed model, etc.), not from
+# the user's own activity.
+RECOMMENDATION_CACHE_TTL_SECONDS = int(os.environ.get("RECOMMENDATION_CACHE_TTL_SECONDS", "900"))
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "website-default-cache",
+    }
+}
+
 # Configure Django REST Framework to use JWT authentication
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # TODO: Remove below when deployments
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
