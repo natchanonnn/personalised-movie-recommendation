@@ -124,6 +124,7 @@
           :rating="movie.rating"
           :genre="movie.genre"
           :show-user-rating="authStore.isAuthenticated"
+          :user-rating="interactionsStore.myRatings[movie.tmdbId] ?? 0"
           @rate="(value) => onRate(movie.tmdbId, value)"
           @click="
             () => {
@@ -133,11 +134,15 @@
         />
       </div>
     </div>
-    <div class="flex justify-end">
+    <div
+      v-if="movieStore.totalCount > PAGE_SIZE"
+      class="flex justify-end"
+    >
       <UPagination
-        v-model:page="page"
-        :items-per-page="10"
-        :total="totalPages * 10"
+        :page="page"
+        :items-per-page="PAGE_SIZE"
+        :total="movieStore.totalCount"
+        @update:page="onPageChange"
       />
     </div>
   </div>
@@ -148,9 +153,10 @@ const movieStore = useMovieStore()
 const authStore = useAuthStore()
 const interactionsStore = useInteractionsStore()
 
+const PAGE_SIZE = 20
+
 const isFilterDrawerOpen = ref(false)
 const page = ref(1)
-const totalPages = ref(10)
 
 const searchQuery = ref('')
 const selectedPersonId = ref<number | null>(null)
@@ -174,20 +180,31 @@ const runSearch = async () => {
   try {
     await movieStore.fetchMovies(
       searchQuery.value,
-      undefined,
-      selectedPersonId.value ?? undefined
+      PAGE_SIZE,
+      selectedPersonId.value ?? undefined,
+      page.value
     )
   } catch {
     // movieStore.error already holds the message; the template renders it
   }
 }
 
+// A new search/filter invalidates the current page position, so it resets
+// to 1. Bound to UPagination imperatively (not v-model) so a page change
+// only ever triggers one fetch, never two.
+const onPageChange = (newPage: number) => {
+  page.value = newPage
+  runSearch()
+}
+
 const onSearch = () => {
+  page.value = 1
   runSearch()
 }
 
 const applyFilters = () => {
   isFilterDrawerOpen.value = false
+  page.value = 1
   runSearch()
 }
 
@@ -214,8 +231,14 @@ const onRate = async (tmdbId: number, value: number) => {
 }
 
 try {
-  await movieStore.fetchMovies()
+  await movieStore.fetchMovies('', PAGE_SIZE, undefined, page.value)
 } catch {
   // movieStore.error already holds the message; the template renders it
+}
+
+if (authStore.isAuthenticated) {
+  interactionsStore.fetchMyRatings().catch(() => {
+    // interactionsStore.myRatings stays empty; cards just show unrated stars
+  })
 }
 </script>

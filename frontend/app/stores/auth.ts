@@ -19,11 +19,8 @@ interface RegisterPayload {
   password_confirm: string
 }
 
-// The JWTs live in httpOnly cookies Django sets directly -- this store
-// never holds or reads a token value. `credentials: 'include'` is what
-// makes the browser attach those cookies to a cross-origin request to the
-// API. During SSR there's no browser doing that on our behalf, so the
-// incoming request's Cookie header has to be forwarded by hand.
+// JWTs in httpOnly cookies set by Django. credentials: 'include' attaches
+// them to cross-origin requests. For SSR, manually forward Cookie header.
 function authFetchOptions(headers?: Record<string, string>) {
   return {
     credentials: 'include' as const,
@@ -46,14 +43,9 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    // Call this once (e.g. in app.vue) to pick up whether a session already
-    // exists, from the non-sensitive `logged_in` marker cookie Django sets
-    // alongside the real (httpOnly) token cookies -- it carries no token
-    // material, just a "you're logged in" flag readable on first paint.
+    // Pick up existing session from non-sensitive 'logged_in' marker cookie
     initFromCookies() {
-      // useCookie decodes with destr, so the literal value "1" comes back
-      // as the *number* 1, not the string '1' -- compare loosely/truthily
-      // rather than against a specific string.
+      // useCookie decodes '1' as number 1, so compare truthily
       const marker = useCookie<string | number | null>('logged_in')
       this.authenticated = !!marker.value
     },
@@ -108,12 +100,21 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser() {
       const config = useRuntimeConfig()
-
-      this.user = await $fetch<User>('/accounts/me/', {
-        baseURL: config.public.apiBase,
-        ...authFetchOptions()
-      })
-      this.authenticated = true
+      // Call useCookie before await for Nuxt context
+      const marker = useCookie('logged_in')
+      try {
+        this.user = await $fetch<User>('/accounts/me/', {
+          baseURL: config.public.apiBase,
+          ...authFetchOptions()
+        })
+        this.authenticated = true
+      } catch (err) {
+        // Clear 'logged_in' marker to prevent SSR mismatch crash when
+        // httpOnly JWT cookies expire. They can't be cleared from JS anyway.
+        marker.value = null
+        this.user = null
+        this.authenticated = false
+      }
       return this.user
     },
 
@@ -127,8 +128,7 @@ export const useAuthStore = defineStore('auth', {
           ...authFetchOptions()
         })
       } catch {
-        // token already invalid/expired server-side -- fine to proceed,
-        // local state gets cleared either way below.
+        // Token already invalid server-side, local state clears below
       }
 
       this.user = null
@@ -136,8 +136,7 @@ export const useAuthStore = defineStore('auth', {
       await navigateTo('/account/login')
     },
 
-    // Wraps $fetch with the auth cookies attached + one retry on 401 via
-    // token refresh. Use this for all authenticated API calls.
+    // Wraps $fetch with auth cookies + one retry on 401 via token refresh
     async authFetch<T>(url: string, opts: Record<string, unknown> = {}): Promise<T> {
       const config = useRuntimeConfig()
 

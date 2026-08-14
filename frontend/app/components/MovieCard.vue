@@ -21,6 +21,7 @@
 
       <div class="flex items-center gap-2 py-1">
         <div class="flex items-center gap-1">
+          <span class="text-[12px] text-amber-600">TMDB</span>
           <UIcon
             name="i-lucide-star"
             class="size-3.5 fill-amber-400 text-amber-400"

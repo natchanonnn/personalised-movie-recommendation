@@ -37,11 +37,20 @@ useSeoMeta({
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/"> Recommended System </NuxtLink>
+        <NuxtLink to="/"> Search Movies </NuxtLink>
       </template>
-      <div v-if="auth.isAuthenticated">
+      <div v-if="auth.isAuthenticated" class="flex gap-4">
         <NuxtLink to="/recommendations"> Recommendations </NuxtLink>
+        <NuxtLink to="/watchlist"> Watchlist </NuxtLink>
+        <NuxtLink to="/my-ratings"> My Ratings </NuxtLink>
       </div>
+      <template #body>
+        <div v-if="auth.isAuthenticated" class="flex flex-col gap-4">
+          <NuxtLink to="/recommendations"> Recommendations </NuxtLink>
+          <NuxtLink to="/watchlist"> Watchlist </NuxtLink>
+          <NuxtLink to="/my-ratings"> My Ratings </NuxtLink>
+        </div>
+      </template>
 
       <template #right>
         <UColorModeButton />

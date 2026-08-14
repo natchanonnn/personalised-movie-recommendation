@@ -38,6 +38,7 @@ interface RecommendedMovie extends Movie {
 
 interface SearchResponse {
   query: string
+  count: number
   results: Movie[]
 }
 
@@ -59,6 +60,7 @@ interface PersonSearchResponse {
 
 export const useMovieStore = defineStore('movie', () => {
   const movies = ref<Movie[]>([])
+  const totalCount = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const movie = ref<Movie | null>(null)
@@ -70,7 +72,7 @@ export const useMovieStore = defineStore('movie', () => {
   const people = ref<Person[]>([])
   const peopleLoading = ref(false)
 
-  async function fetchMovies(query = '', limit = 20, personId?: number | string) {
+  async function fetchMovies(query = '', limit = 20, personId?: number | string, page = 1) {
     const config = useRuntimeConfig()
 
     loading.value = true
@@ -79,9 +81,10 @@ export const useMovieStore = defineStore('movie', () => {
     try {
       const response = await $fetch<SearchResponse>('/movies/search/', {
         baseURL: config.public.apiBase,
-        query: { q: query, limit, person: personId }
+        query: { q: query, limit, person: personId, page }
       })
       movies.value = response.results
+      totalCount.value = response.count
       return movies.value
     } catch (err) {
       error.value = 'Could not load movies.'
@@ -157,6 +160,7 @@ export const useMovieStore = defineStore('movie', () => {
 
   return {
     movies,
+    totalCount,
     movie,
     loading,
     error,
