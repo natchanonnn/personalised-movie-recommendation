@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="page-container">
     <span class="text-2xl font-medium">Login</span>
     <UForm
       ref="loginForm"

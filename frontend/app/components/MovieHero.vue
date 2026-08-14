@@ -1,70 +1,99 @@
 <template>
-  <div class="movie-card grow">
-    <div class="movie-card__poster">
-      <span class="movie-card__poster-backdrop"></span>
-      <span class="movie-card__poster-overlay"></span>
+  <div class="overflow-hidden rounded-2xl border border-default">
+    <div class="relative h-[180px] w-full bg-elevated">
+      <img
+        v-if="backdropUrl"
+        :src="backdropUrl"
+        :alt="name"
+        class="absolute inset-0 size-full object-cover"
+      >
+      <div
+        v-else
+        class="absolute inset-0 flex items-center justify-center"
+      >
+        <UIcon
+          name="i-lucide-videotape"
+          class="size-6 text-dimmed"
+        />
+      </div>
+
+      <div
+        v-if="backdropUrl"
+        class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent"
+      />
+
+      <div
+        class="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-2.5"
+        :class="backdropUrl ? 'text-white' : 'text-highlighted'"
+      >
+        <p class="min-w-full text-3xl leading-9 font-medium">
+          {{ name }}
+        </p>
+        <p
+          v-if="subtitle"
+          class="text-xs whitespace-nowrap"
+        >
+          {{ subtitle }}
+        </p>
+      </div>
     </div>
-    <div class="movie-card__details">
-      <span class="movie-card__title">Movie Title</span>
-      <span class="movie-card__meta">Genre • Year</span>
+
+    <div class="flex h-10 w-full items-center gap-2 bg-default p-2.5">
+      <UBadge
+        color="neutral"
+        variant="solid"
+        icon="i-lucide-star"
+        size="md"
+      >
+        {{ displayRating }}
+      </UBadge>
+      <p
+        v-if="genre"
+        class="min-w-px flex-1 truncate text-xs text-dimmed"
+      >
+        {{ genre }}
+      </p>
+      <p
+        v-if="ratingsCount != null"
+        class="shrink-0 text-xs text-highlighted"
+      >
+        {{ ratingsCount.toLocaleString() }} Ratings
+      </p>
     </div>
   </div>
 </template>
 
-<style scoped>
-.movie-card {
-  height: 239px;
-  border-radius: 16px;
-  background: #f8fafc;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+<script setup lang="ts">
+const props = withDefaults(defineProps<{
+  backdropPath?: string | null
+  name: string
+  releaseYear?: number | string | null
+  director?: string | null
+  durationMinutes?: number | null
+  rating?: number
+  genre?: string
+  ratingsCount?: number | null
+}>(), {
+  backdropPath: null,
+  releaseYear: null,
+  director: null,
+  durationMinutes: null,
+  rating: 0,
+  genre: '',
+  ratingsCount: null
+})
 
-.movie-card__poster {
-  flex: 1;
-  position: relative;
-  background: #e2e8f0;
-}
+const backdropUrl = computed(() => buildTmdbImageUrl(props.backdropPath))
 
-.movie-card__poster-backdrop,
-.movie-card__poster-overlay {
-  position: absolute;
-  inset: 0;
-}
+const displayRating = computed(() => (props.rating / 2).toFixed(1))
 
-.movie-card__poster-backdrop {
-  background: linear-gradient(180deg, #eef2ff 0%, #e2e8f0 100%);
-}
-
-.movie-card__poster-overlay {
-  background: radial-gradient(
-      circle at 30% 30%,
-      rgba(255, 255, 255, 0.75),
-      transparent 35%
-    ),
-    radial-gradient(circle at 70% 40%, rgba(252, 200, 0, 0.25), transparent 30%);
-}
-
-.movie-card__details {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: white;
-}
-
-.movie-card__title {
-  display: block;
-  font-size: 14px;
-  font-weight: 700;
-  color: #0f172b;
-}
-
-.movie-card__meta {
-  display: block;
-  font-size: 12px;
-  color: #64748b;
-}
-</style>
+const subtitle = computed(() =>
+  [
+    props.releaseYear,
+    props.director,
+    props.durationMinutes ? `${props.durationMinutes} min` : null
+  ]
+    .filter(Boolean)
+    .join(' | ')
+)
+</script>

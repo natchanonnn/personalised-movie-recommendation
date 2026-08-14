@@ -7,11 +7,6 @@ interface User {
   [key: string]: unknown
 }
 
-interface TokenPair {
-  access: string
-  refresh: string
-}
-
 interface LoginPayload {
   username: string
   password: string
@@ -24,72 +19,58 @@ interface RegisterPayload {
   password_confirm: string
 }
 
+// The JWTs live in httpOnly cookies Django sets directly -- this store
+// never holds or reads a token value. `credentials: 'include'` is what
+// makes the browser attach those cookies to a cross-origin request to the
+// API. During SSR there's no browser doing that on our behalf, so the
+// incoming request's Cookie header has to be forwarded by hand.
+function authFetchOptions(headers?: Record<string, string>) {
+  return {
+    credentials: 'include' as const,
+    headers: import.meta.server
+      ? { ...useRequestHeaders(['cookie']), ...headers }
+      : headers
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
-    accessToken: null as string | null,
-    refreshToken: null as string | null,
+    authenticated: false,
     // avoids firing multiple refresh calls in parallel
-    refreshPromise: null as Promise<string> | null
+    refreshPromise: null as Promise<void> | null
   }),
 
   getters: {
-    isAuthenticated: state => !!state.accessToken
+    isAuthenticated: state => state.authenticated
   },
 
   actions: {
-    // Call this once (e.g. in an app plugin) to hydrate tokens from cookies
-    // on both server and client.
+    // Call this once (e.g. in app.vue) to pick up whether a session already
+    // exists, from the non-sensitive `logged_in` marker cookie Django sets
+    // alongside the real (httpOnly) token cookies -- it carries no token
+    // material, just a "you're logged in" flag readable on first paint.
     initFromCookies() {
-      const access = useCookie<string | null>('access_token')
-      const refresh = useCookie<string | null>('refresh_token')
-      this.accessToken = access.value ?? null
-      this.refreshToken = refresh.value ?? null
-    },
-
-    persistTokens(tokens: TokenPair) {
-      this.accessToken = tokens.access
-      this.refreshToken = tokens.refresh
-
-      const access = useCookie('access_token', {
-        maxAge: 60 * 5, // match your ACCESS token lifetime, e.g. 5 min
-        sameSite: 'lax',
-        secure: true,
-        httpOnly: false // set true only if you handle cookies purely server-side
-      })
-      const refresh = useCookie('refresh_token', {
-        maxAge: 60 * 60 * 24 * 7, // match your REFRESH token lifetime
-        sameSite: 'lax',
-        secure: true,
-        httpOnly: false
-      })
-      access.value = tokens.access
-      refresh.value = tokens.refresh
-    },
-
-    clearTokens() {
-      this.accessToken = null
-      this.refreshToken = null
-      this.user = null
-
-      const access = useCookie('access_token')
-      const refresh = useCookie('refresh_token')
-      access.value = null
-      refresh.value = null
+      // useCookie decodes with destr, so the literal value "1" comes back
+      // as the *number* 1, not the string '1' -- compare loosely/truthily
+      // rather than against a specific string.
+      const marker = useCookie<string | number | null>('logged_in')
+      this.authenticated = !!marker.value
     },
 
     async login(payload: LoginPayload) {
       const config = useRuntimeConfig()
 
-      const tokens = await $fetch<TokenPair>('/accounts/login/', {
+      const result = await $fetch<{ user: User }>('/accounts/login/', {
         baseURL: config.public.apiBase,
         method: 'POST',
-        body: payload
+        body: payload,
+        ...authFetchOptions()
       })
 
-      this.persistTokens(tokens)
-      await this.fetchUser()
-      return tokens
+      this.user = result.user
+      this.authenticated = true
+      return result
     },
 
     async register(payload: RegisterPayload) {
@@ -102,30 +83,20 @@ export const useAuthStore = defineStore('auth', {
       })
     },
 
-    async refreshAccessToken(): Promise<string> {
-      // If a refresh is already in flight, reuse it instead of firing another
+    async refreshAccessToken(): Promise<void> {
       if (this.refreshPromise) return this.refreshPromise
-
-      if (!this.refreshToken) {
-        this.clearTokens()
-        throw new Error('No refresh token available')
-      }
 
       const config = useRuntimeConfig()
 
-      this.refreshPromise = $fetch<{ access: string }>('/accounts/token/refresh/', {
+      this.refreshPromise = $fetch('/accounts/token/refresh/', {
         baseURL: config.public.apiBase,
         method: 'POST',
-        body: { refresh: this.refreshToken }
+        ...authFetchOptions()
       })
-        .then((res) => {
-          this.accessToken = res.access
-          const access = useCookie('access_token', { sameSite: 'lax', secure: true })
-          access.value = res.access
-          return res.access
-        })
+        .then(() => undefined)
         .catch((err) => {
-          this.clearTokens()
+          this.user = null
+          this.authenticated = false
           throw err
         })
         .finally(() => {
@@ -136,57 +107,53 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async fetchUser() {
-      if (!this.accessToken) return null
       const config = useRuntimeConfig()
 
       this.user = await $fetch<User>('/accounts/me/', {
         baseURL: config.public.apiBase,
-        headers: { Authorization: `Bearer ${this.accessToken}` }
+        ...authFetchOptions()
       })
+      this.authenticated = true
       return this.user
     },
 
     async logout() {
       const config = useRuntimeConfig()
 
-      if (this.refreshToken) {
-        try {
-          await $fetch('/accounts/logout/', {
-            baseURL: config.public.apiBase,
-            method: 'POST',
-            body: { refresh: this.refreshToken },
-            headers: { Authorization: `Bearer ${this.accessToken}` }
-          })
-        } catch {
-          // token already invalid/expired server-side — fine to proceed
-        }
+      try {
+        await $fetch('/accounts/logout/', {
+          baseURL: config.public.apiBase,
+          method: 'POST',
+          ...authFetchOptions()
+        })
+      } catch {
+        // token already invalid/expired server-side -- fine to proceed,
+        // local state gets cleared either way below.
       }
 
-      this.clearTokens()
+      this.user = null
+      this.authenticated = false
       await navigateTo('/account/login')
     },
 
-    // Wraps $fetch with automatic access-token attach + one retry on 401
-    // via token refresh. Use this for all authenticated API calls.
+    // Wraps $fetch with the auth cookies attached + one retry on 401 via
+    // token refresh. Use this for all authenticated API calls.
     async authFetch<T>(url: string, opts: Record<string, unknown> = {}): Promise<T> {
       const config = useRuntimeConfig()
 
-      const doFetch = (token: string | null) =>
+      const doFetch = () =>
         $fetch<T>(url, {
           baseURL: config.public.apiBase,
           ...opts,
-          headers: {
-            ...(opts.headers as Record<string, string> | undefined),
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
+          ...authFetchOptions(opts.headers as Record<string, string> | undefined)
         })
 
       try {
-        return await doFetch(this.accessToken)
+        return await doFetch()
       } catch (err: any) {
-        if (err?.response?.status === 401 && this.refreshToken) {
-          const newToken = await this.refreshAccessToken()
-          return await doFetch(newToken)
+        if (err?.response?.status === 401 && this.authenticated) {
+          await this.refreshAccessToken()
+          return await doFetch()
         }
         throw err
       }
