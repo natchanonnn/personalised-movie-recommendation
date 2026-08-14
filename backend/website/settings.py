@@ -11,25 +11,27 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 from dotenv import read_dotenv
+from distutils.util import strtobool
 
-read_dotenv(override=True)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+read_dotenv(BASE_DIR, override=True)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-0n%0oil&^q!^)jrv)og*k!2hz6*jqz(qnl%09p=8a7c9lvhdc@"
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-0n%0oil&^q!^)jrv)og*k!2hz6*jqz(qnl%09p=8a7c9lvhdc@")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(strtobool(os.environ.get('DEBUG', 'True')))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")
 
 
 # Application definition
@@ -69,8 +71,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "website.urls"
 
-# Nuxt dev server origin; the frontend sends the JWT via an Authorization
-# header (not cookies), so CORS_ALLOW_CREDENTIALS is not required.
+# Nuxt dev server origin. The JWT now lives in an httpOnly cookie, so the
+# browser needs to be allowed to send credentials cross-origin -- this is
+# only safe paired with an explicit origin allowlist (never "*") and
+# SameSite=Lax cookies, both true here: a cross-site fetch() from anywhere
+# else never gets the cookie attached in the first place.
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -106,14 +112,37 @@ CACHES = {
 # Configure Django REST Framework to use JWT authentication
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        # TODO: Remove below when deployments
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'accounts.authentication.CookieJWTAuthentication',
+        *([
+            'rest_framework.authentication.BasicAuthentication',
+            'rest_framework.authentication.SessionAuthentication',
+        ] if DEBUG else [])
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'register': '3/minute',
+        'login': '8/minute',
+    }
+}
+
+# access/refresh tokens live in httpOnly cookies (see accounts/cookies.py) --
+# JS on the page never has a token value to read, so an XSS/compromised
+# dependency can't exfiltrate a long-lived credential from here.
+AUTH_COOKIE_ACCESS = "access_token"
+AUTH_COOKIE_REFRESH = "refresh_token"
+AUTH_COOKIE_SECURE = not DEBUG  # browsers won't send a Secure cookie over plain http://localhost
+AUTH_COOKIE_SAMESITE = "Lax"
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # Every refresh issues a new refresh token and blacklists the one just
+    # used, so a stolen refresh cookie is only useful until the real user's
+    # client refreshes once -- not for the full 7-day window.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 TEMPLATES = [
@@ -142,19 +171,13 @@ WSGI_APPLICATION = "website.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'database',
-        'USER': 'root',
-        'PASSWORD': 'mysecretpassword',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get("DB_NAME", "database"),
+        'USER': os.environ.get("DB_USER", "root"),
+        'PASSWORD': os.environ.get("DB_PASSWORD",'mysecretpassword'),
+        'HOST': os.environ.get('DB_HOST','localhost'),
+        'PORT': os.environ.get('DB_PORT','5432'),
     }
 }
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 
 
 # Password validation
