@@ -19,7 +19,7 @@ if (auth.isAuthenticated && !auth.user) {
   await auth.fetchUser();
 }
 
-const title = "Nuxt Starter Template";
+const title = "Movie Recommendation System";
 const description =
   "A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours.";
 
@@ -37,59 +37,55 @@ useSeoMeta({
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/"> Recommended System </NuxtLink>
-        <TemplateMenu />
+        <NuxtLink to="/"> Search Movies </NuxtLink>
       </template>
-
-      <div>
-        TODO: Navigation menu goes here. For example, you could add a link to
-        the login page:
+      <div v-if="auth.isAuthenticated" class="flex gap-4">
+        <NuxtLink to="/recommendations"> Recommendations </NuxtLink>
+        <NuxtLink to="/watchlist"> Watchlist </NuxtLink>
+        <NuxtLink to="/my-ratings"> My Ratings </NuxtLink>
       </div>
+      <template #body>
+        <div v-if="auth.isAuthenticated" class="flex flex-col gap-4">
+          <NuxtLink to="/recommendations"> Recommendations </NuxtLink>
+          <NuxtLink to="/watchlist"> Watchlist </NuxtLink>
+          <NuxtLink to="/my-ratings"> My Ratings </NuxtLink>
+        </div>
+      </template>
 
       <template #right>
         <UColorModeButton />
-
-        <!-- <UButton TODO: Change to user profile menu when logged in
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
+        <UButton
+          v-if="!auth.isAuthenticated"
+          to="/account/login"
           variant="ghost"
-        /> -->
+          icon="i-lucide-log-in"
+          color="neutral"
+          aria-label="Login"
+        >
+          Login
+        </UButton>
+        <UButton
+          v-else
+          @click="auth.logout()"
+          variant="ghost"
+          color="neutral"
+          icon="i-lucide-log-out"
+          aria-label="Logout"
+        >
+          Logout
+        </UButton>
       </template>
     </UHeader>
 
     <UMain>
       <NuxtPage />
     </UMain>
-
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
-
-    <UFooter>
-      <template #left>
-        <p class="text-sm text-muted">
-          Built with Nuxt UI • © {{ new Date().getFullYear() }}
-        </p>
-      </template>
-
-      <template #right>
-        <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
-      </template>
-    </UFooter>
   </UApp>
 </template>
 
 <style>
-.container {
-  margin: 32px;
+.page-container {
+  width: 100vw;
   padding: 20px;
 }
 </style>

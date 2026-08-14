@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="page-container">
     <span class="text-2xl font-medium">Create Account</span>
     <UForm
       ref="createAccountForm"
