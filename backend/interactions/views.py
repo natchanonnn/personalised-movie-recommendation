@@ -1,4 +1,5 @@
 from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Interaction, InteractionType, Rating, Watchlist
@@ -14,12 +15,13 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 class RatingViewSet(viewsets.ModelViewSet):
     """
-    GET    /api/interactions/ratings/?movie=<tmdb_id>  -- all ratings for a movie (public reviews feed)
-    GET    /api/interactions/ratings/?mine=1             -- the current user's own ratings
-    POST   /api/interactions/ratings/                      -- rate/review a movie; upserts, matching
-                                                               Rating's one-row-per-(user,movie) design
-    PATCH  /api/interactions/ratings/<id>/                  -- edit your own rating
-    DELETE /api/interactions/ratings/<id>/                   -- remove your own rating
+    GET    /api/interactions/ratings/?movie=<tmdb_id>          -- all ratings for a movie (public reviews feed)
+    GET    /api/interactions/ratings/?movie=<tmdb_id>&mine=1     -- just the current user's own rating for it
+    GET    /api/interactions/ratings/summary/?movie=<tmdb_id>      -- rating counts per star bucket, not the raw rows
+    POST   /api/interactions/ratings/                                 -- rate/review a movie; upserts, matching
+                                                                          Rating's one-row-per-(user,movie) design
+    PATCH  /api/interactions/ratings/<id>/                             -- edit your own rating
+    DELETE /api/interactions/ratings/<id>/                              -- remove your own rating
     """
 
     serializer_class = RatingSerializer
@@ -55,10 +57,37 @@ class RatingViewSet(viewsets.ModelViewSet):
         output = self.get_serializer(rating)
         return Response(output.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """GET /v1/interactions/ratings/summary/?movie=<tmdb_id>
+
+        Aggregate rating counts per whole-star bucket (1-5, rounding any
+        half-star scores to the nearest star) instead of shipping every
+        individual Rating row just to render a distribution -- lighter, and
+        doesn't expose other users' review text/usernames for something
+        that's only ever displayed as a histogram.
+        """
+        movie_id = request.query_params.get("movie")
+        if not movie_id:
+            return Response({"detail": "movie is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            movie_id = int(movie_id)
+        except ValueError:
+            return Response({"detail": "movie must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+
+        scores = list(Rating.objects.filter(movie__tmdb_id=movie_id).values_list("score", flat=True))
+        counts = {str(i): 0 for i in range(1, 6)}
+        for score in scores:
+            bucket = min(5, max(1, round(score)))
+            counts[str(bucket)] += 1
+
+        return Response({"movie": movie_id, "total": len(scores), "counts": counts})
+
 
 class WatchlistViewSet(viewsets.ModelViewSet):
     """
-    GET    /api/interactions/watchlist/    -- current user's watchlist
+    GET    /api/interactions/watchlist/                     -- current user's watchlist
+    GET    /api/interactions/watchlist/?movie=<tmdb_id>      -- just this movie's entry, if any (0 or 1 rows)
     POST   /api/interactions/watchlist/     -- add a movie (idempotent -- adding twice is a no-op, not an error)
     DELETE /api/interactions/watchlist/<id>/ -- remove
     """
@@ -67,7 +96,12 @@ class WatchlistViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Watchlist.objects.filter(user=self.request.user).select_related("movie")
+        qs = Watchlist.objects.filter(user=self.request.user).select_related("movie")
+        # pyrefly: ignore [missing-attribute]
+        movie_id = self.request.query_params.get("movie")
+        if movie_id:
+            qs = qs.filter(movie__tmdb_id=movie_id)
+        return qs
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

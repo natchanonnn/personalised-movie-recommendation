@@ -11,7 +11,7 @@ from .serializers import MovieDetailSerializer, MovieSearchResultSerializer, Per
 
 
 class MovieSearchView(APIView):
-    """GET /v1/movies/search/?q=<title>&limit=<n>&person=<person_id>
+    """GET /v1/movies/search/?q=<title>&limit=<n>&page=<n>&person=<person_id>
 
     Fuzzy/typo-tolerant ranked search via Postgres trigram similarity (see
     the 0002_trigram_search migration) when running on Postgres. Falls back
@@ -24,7 +24,8 @@ class MovieSearchView(APIView):
 
     `person` (a Person id, e.g. picked via PersonSearchView) narrows results
     to movies where that person appears as cast OR crew -- combinable with
-    `q`.
+    `q`. `page` is 1-indexed; the response's `count` is the total number of
+    matches (before pagination), for the frontend to compute page count.
 
     Every result's tmdb_id doubles as the recommendation-service's item_id
     -- usable directly in a /v1/recommendations history entry, no lookup.
@@ -40,6 +41,13 @@ class MovieSearchView(APIView):
             return Response({"detail": "limit must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
         limit = max(1, min(limit, 50))
 
+        try:
+            page = int(request.query_params.get("page", 1))
+        except ValueError:
+            return Response({"detail": "page must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+        page = max(1, page)
+        offset = (page - 1) * limit
+
         base_queryset = Movie.objects.prefetch_related("genres")
         person_id = request.query_params.get("person")
         if person_id:
@@ -52,20 +60,23 @@ class MovieSearchView(APIView):
             ).distinct()
 
         if not query:
-            results = base_queryset.order_by("-tmdb_vote_average")[:limit]
+            ordered_queryset = base_queryset.order_by("-tmdb_vote_average")
         elif connection.vendor == "postgresql":
             from django.contrib.postgres.search import TrigramSimilarity
 
-            results = (
+            ordered_queryset = (
                 base_queryset.annotate(similarity=TrigramSimilarity("title", query))
                 .filter(Q(similarity__gt=0.2) | Q(title__icontains=query))
-                .order_by("-similarity", "title")[:limit]
+                .order_by("-similarity", "title")
             )
         else:
-            results = base_queryset.filter(title__icontains=query).order_by("title")[:limit]
+            ordered_queryset = base_queryset.filter(title__icontains=query).order_by("title")
+
+        count = ordered_queryset.count()
+        results = ordered_queryset[offset : offset + limit]
 
         serializer = MovieSearchResultSerializer(results, many=True)
-        return Response({"query": query, "results": serializer.data})
+        return Response({"query": query, "count": count, "results": serializer.data})
 
 
 class PersonSearchView(APIView):
