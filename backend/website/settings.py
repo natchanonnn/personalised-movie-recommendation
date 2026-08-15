@@ -77,9 +77,14 @@ ROOT_URLCONF = "website.urls"
 # SameSite=Lax cookies, both true here: a cross-site fetch() from anywhere
 # else never gets the cookie attached in the first place.
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
+CORS_ALLOWED_ORIGINS = [ # TODO: Configure this for production, e.g. "https://myapp.com"
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+]
+
+CSRF_TRUSTED_ORIGINS = [ # TODO: Configure this for production, e.g. "https://myapp.com"
+    "http://localhost:8000",
+    "http://localhost:3000",
 ]
 
 # Recommendation service (FastAPI, see /recommendation)
@@ -113,10 +118,7 @@ CACHES = {
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'accounts.authentication.CookieJWTAuthentication',
-        *([
-            'rest_framework.authentication.BasicAuthentication',
-            'rest_framework.authentication.SessionAuthentication',
-        ] if DEBUG else [])
+        *(['rest_framework.authentication.BasicAuthentication'] if DEBUG else [])
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
