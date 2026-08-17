@@ -86,45 +86,4 @@ class ModelRegistry:
     def is_loaded(self) -> bool:
         return len(self.variants) == 3
 
-    def search_movies(self, query: str, limit: int) -> list[dict]:
-        """Case-insensitive substring search over movie titles. Returns raw
-        (decoded) item_ids -- ready to drop straight into a /v1/recommendations
-        history entry -- not the internal ids item_features is indexed by.
-
-        Plain pandas string ops, no external search index: fine for a
-        catalog in the tens-of-thousands range. If the catalog grows large
-        enough for this to show up in latency, swap for a proper text index
-        (e.g. a trigram index in Postgres, or a small in-memory prefix
-        structure) rather than optimizing this scan further.
-        """
-        query = query.strip()
-        if not query or self.item_features is None:
-            return []
-
-        lower_query = query.lower()
-        lower_titles = self.item_features["title"].astype(str).str.lower()
-        contains_mask = lower_titles.str.contains(lower_query, regex=False, na=False)
-        if not contains_mask.any():
-            return []
-
-        candidates = self.item_features[contains_mask].copy()
-        candidate_titles = lower_titles[contains_mask]
-
-        # 0 = exact title match, 1 = starts with query, 2 = contains query elsewhere
-        rank = pd.Series(2, index=candidates.index)
-        rank[candidate_titles.str.startswith(lower_query)] = 1
-        rank[candidate_titles == lower_query] = 0
-        candidates["_rank"] = rank
-        candidates = candidates.sort_values(["_rank", "title"]).head(limit)
-
-        results = []
-        for row in candidates.itertuples(index=False):
-            raw_item_id = self.encoded_to_item_id.get(int(row.item_id))
-            if raw_item_id is None:
-                continue  # shouldn't happen -- every row here came from the fitted catalog
-            genres = list(row.genre_names) if isinstance(row.genre_names, (list, tuple)) else []
-            results.append({"item_id": str(raw_item_id), "title": row.title, "genres": genres})
-        return results
-
-
 registry = ModelRegistry()
