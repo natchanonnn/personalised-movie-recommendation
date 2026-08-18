@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.env
+.git
+.gitignore
+.ruff_cache/
+README.md
+db.sqlite3

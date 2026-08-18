@@ -1,0 +1,79 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-database}
+      POSTGRES_USER: ${DB_USER:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Not published to the host -- only `backend` talks to this, over the
+    # internal compose network (db:5432). Add a "ports:" mapping yourself
+    # (e.g. "5433:5432") if you want host-side psql/GUI access.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-root} -d ${DB_NAME:-database}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  recommendation:
+    build: ./recommendation
+    environment:
+      REPLAY_ENCODER_PATH: /artifacts/encoded/encoder
+      REPLAY_ITEM_FEATURES_PATH: /artifacts/encoded/item_features_encoded.parquet
+      REPLAY_CKPT_COLLABORATIVE: /artifacts/checkpoints/collaborative.ckpt
+      REPLAY_CKPT_HYBRID_CONTENT: /artifacts/checkpoints/hybrid_content.ckpt
+      REPLAY_CKPT_PURE_CONTENT: /artifacts/checkpoints/pure_content.ckpt
+    # Model artifacts aren't baked into the image (see recommendation/README.md
+    # "What's still on you") -- mount the encoder/checkpoints produced by
+    # Encoding-3.ipynb / CF.ipynb / HBF.ipynb / CBF.ipynb from the host.
+    volumes:
+      - ./recommendation/replay_artifacts:/artifacts:ro
+    ports:
+      - "127.0.0.1:8080:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      # Loading all 3 checkpoints at startup takes real wall-clock time
+      # (see recommendation/README.md) -- give it room before failing checks.
+      start_period: 90s
+
+  backend:
+    build: ./backend
+    environment:
+      DEBUG: ${DEBUG:-True}
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-0n%0oil&^q!^)jrv)og*k!2hz6*jqz(qnl%09p=8a7c9lvhdc@}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      DB_NAME: ${DB_NAME:-database}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
+      DB_HOST: db
+      DB_PORT: 5432
+      # Container-network address -- distinct from the host-mapped 8080 that
+      # RECOMMENDATION_SERVICE_URL defaults to outside Docker.
+      RECOMMENDATION_SERVICE_URL: http://recommendation:8000
+      RECOMMENDATION_SERVICE_VARIANT: ${RECOMMENDATION_SERVICE_VARIANT:-collaborative}
+    depends_on:
+      db:
+        condition: service_healthy
+      recommendation:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    environment:
+      # Browser-facing base URL -- must be reachable from the host, not the
+      # `backend` container-network hostname. Client-side $fetch calls use
+      # this directly; see the SSR caveat in the docker-compose notes below.
+      NUXT_PUBLIC_API_BASE: http://localhost:8000/v1
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
