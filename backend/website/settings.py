@@ -20,7 +20,10 @@ from distutils.util import strtobool
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-read_dotenv(BASE_DIR, override=True)
+try:
+    read_dotenv(BASE_DIR / ".env", override=True)
+except FileNotFoundError:
+    print("No .env file found; relying on environment variables only")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -60,6 +63,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves /static/ (admin + swagger UI assets)
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -71,11 +76,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "website.urls"
 
-# Nuxt dev server origin. The JWT now lives in an httpOnly cookie, so the
-# browser needs to be allowed to send credentials cross-origin -- this is
-# only safe paired with an explicit origin allowlist (never "*") and
-# SameSite=Lax cookies, both true here: a cross-site fetch() from anywhere
-# else never gets the cookie attached in the first place.
+# Nuxt dev server origin. The JWT now lives in an httpOnly cookie
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [ # TODO: Configure this for production, e.g. "https://myapp.com"
     "http://localhost:3000",
@@ -100,11 +101,7 @@ RECOMMENDATION_SERVICE_VARIANT = os.environ.get("RECOMMENDATION_SERVICE_VARIANT"
 RECOMMENDATION_DEFAULT_K = int(os.environ.get("RECOMMENDATION_DEFAULT_K", "10"))
 RECOMMENDATION_MAX_K = int(os.environ.get("RECOMMENDATION_MAX_K", "100"))
 
-# How long a computed recommendation set is cached for, keyed on
-# (user, rating history, k, variant) -- see recommendations/views.py. A new
-# rating changes the key automatically, so this TTL only bounds staleness
-# from other factors (catalog changes, a redeployed model, etc.), not from
-# the user's own activity.
+# How long a computed recommendation set is cached for
 RECOMMENDATION_CACHE_TTL_SECONDS = int(os.environ.get("RECOMMENDATION_CACHE_TTL_SECONDS", "900"))
 
 CACHES = {
@@ -130,8 +127,6 @@ REST_FRAMEWORK = {
 }
 
 # access/refresh tokens live in httpOnly cookies (see accounts/cookies.py) --
-# JS on the page never has a token value to read, so an XSS/compromised
-# dependency can't exfiltrate a long-lived credential from here.
 AUTH_COOKIE_ACCESS = "access_token"
 AUTH_COOKIE_REFRESH = "refresh_token"
 AUTH_COOKIE_SECURE = not DEBUG  # browsers won't send a Secure cookie over plain http://localhost
@@ -140,9 +135,6 @@ AUTH_COOKIE_SAMESITE = "Lax"
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    # Every refresh issues a new refresh token and blacklists the one just
-    # used, so a stolen refresh cookie is only useful until the real user's
-    # client refreshes once -- not for the full 7-day window.
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
@@ -217,6 +209,17 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    # Hashed filenames + gzip/brotli precompression, read from the manifest
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

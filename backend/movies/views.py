@@ -11,7 +11,7 @@ from .serializers import MovieDetailSerializer, MovieSearchResultSerializer, Per
 
 
 class MovieSearchView(APIView):
-    """GET /v1/movies/search/?q=<title>&limit=<n>&page=<n>&person=<person_id>
+    """GET /v1/movies/search/?q=<title>&limit=<n>&page=<n>&person=<person_id>&year=<yyyy>
 
     Fuzzy/typo-tolerant ranked search via Postgres trigram similarity (see
     the 0002_trigram_search migration) when running on Postgres. Falls back
@@ -24,8 +24,10 @@ class MovieSearchView(APIView):
 
     `person` (a Person id, e.g. picked via PersonSearchView) narrows results
     to movies where that person appears as cast OR crew -- combinable with
-    `q`. `page` is 1-indexed; the response's `count` is the total number of
-    matches (before pagination), for the frontend to compute page count.
+    `q`. `year` narrows to movies whose release_date falls in that calendar
+    year -- also combinable with `q`/`person`. `page` is 1-indexed; the
+    response's `count` is the total number of matches (before pagination),
+    for the frontend to compute page count.
 
     Every result's tmdb_id doubles as the recommendation-service's item_id
     -- usable directly in a /v1/recommendations history entry, no lookup.
@@ -58,6 +60,14 @@ class MovieSearchView(APIView):
             base_queryset = base_queryset.filter(
                 Q(cast_credits__person_id=person_id) | Q(crew_credits__person_id=person_id)
             ).distinct()
+
+        year = request.query_params.get("year")
+        if year:
+            try:
+                year = int(year)
+            except ValueError:
+                return Response({"detail": "year must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+            base_queryset = base_queryset.filter(release_date__year=year)
 
         if not query:
             ordered_queryset = base_queryset.order_by("-tmdb_vote_average")

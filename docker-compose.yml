@@ -29,8 +29,9 @@ services:
     # Encoding-3.ipynb / CF.ipynb / HBF.ipynb / CBF.ipynb from the host.
     volumes:
       - ./recommendation/replay_artifacts:/artifacts:ro
-    ports:
-      - "127.0.0.1:8080:8000"
+    # TODO: Remove this for debugging
+    # ports:
+    #   - "127.0.0.1:8080:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health').read()"]
       interval: 10s
