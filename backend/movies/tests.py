@@ -15,10 +15,14 @@ class MovieSearchTests(APITestCase):
         action = Genre.objects.create(name="Action")
         drama = Genre.objects.create(name="Drama")
 
-        self.avengers = Movie.objects.create(tmdb_id=1, title="Avengers", tmdb_vote_average=8.0)
+        self.avengers = Movie.objects.create(
+            tmdb_id=1, title="Avengers", tmdb_vote_average=8.0, release_date="2012-05-04"
+        )
         self.avengers.genres.add(action)
 
-        self.drama_movie = Movie.objects.create(tmdb_id=2, title="Quiet Room", tmdb_vote_average=6.0)
+        self.drama_movie = Movie.objects.create(
+            tmdb_id=2, title="Quiet Room", tmdb_vote_average=6.0, release_date="2019-01-10"
+        )
         self.drama_movie.genres.add(drama)
 
         self.director = Person.objects.create(name="Jane Director")
@@ -44,6 +48,16 @@ class MovieSearchTests(APITestCase):
 
     def test_invalid_limit_returns_400(self):
         response = self.client.get(self.search_url, {"limit": "not-a-number"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_by_year(self):
+        response = self.client.get(self.search_url, {"year": 2012})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [r["title"] for r in response.data["results"]]
+        self.assertEqual(titles, ["Avengers"])
+
+    def test_invalid_year_returns_400(self):
+        response = self.client.get(self.search_url, {"year": "not-a-number"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_search_does_not_n_plus_1_on_genres(self):

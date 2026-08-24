@@ -72,7 +72,13 @@ export const useMovieStore = defineStore('movie', () => {
   const people = ref<Person[]>([])
   const peopleLoading = ref(false)
 
-  async function fetchMovies(query = '', limit = 20, personId?: number | string, page = 1) {
+  async function fetchMovies(
+    query = '',
+    limit = 20,
+    personId?: number | string,
+    page = 1,
+    year?: number | string
+  ) {
     const config = useRuntimeConfig()
 
     loading.value = true
@@ -81,7 +87,7 @@ export const useMovieStore = defineStore('movie', () => {
     try {
       const response = await $fetch<SearchResponse>('/movies/search/', {
         baseURL: config.public.apiBase,
-        query: { q: query, limit, person: personId, page }
+        query: { q: query, limit, person: personId, page, year }
       })
       movies.value = response.results
       totalCount.value = response.count

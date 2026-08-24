@@ -35,17 +35,6 @@ class VariantAssignmentResponse(BaseModel):
     bucket: float
 
 
-class MovieSearchResult(BaseModel):
-    item_id: str  # raw id -- usable directly as a HistoryItem.item_id
-    title: str
-    genres: list[str]
-
-
-class MovieSearchResponse(BaseModel):
-    query: str
-    results: list[MovieSearchResult]
-
-
 class HealthResponse(BaseModel):
     status: str
     loaded_variants: list[str]
