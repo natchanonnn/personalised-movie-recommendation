@@ -20,11 +20,13 @@ dependencies = [
     { name = "django" },
     { name = "django-cors-headers" },
     { name = "django-dotenv" },
+    { name = "django-extensions" },
     { name = "django-stubs" },
     { name = "djangorestframework" },
     { name = "djangorestframework-simplejwt" },
     { name = "drf-yasg" },
     { name = "psycopg2-binary" },
+    { name = "pygraphviz" },
     { name = "pyjwt" },
     { name = "requests" },
     { name = "sqlparse" },
@@ -43,11 +45,13 @@ requires-dist = [
     { name = "django", specifier = "==5.2.17" },
     { name = "django-cors-headers", specifier = "==4.9.0" },
     { name = "django-dotenv", specifier = "==1.4.2" },
+    { name = "django-extensions", specifier = "==4.1" },
     { name = "django-stubs", specifier = "==6.0.9" },
     { name = "djangorestframework", specifier = "==3.18.0" },
     { name = "djangorestframework-simplejwt", specifier = "==5.5.1" },
     { name = "drf-yasg", specifier = "==1.21.15" },
     { name = "psycopg2-binary", specifier = "==2.9.12" },
+    { name = "pygraphviz", specifier = "==2.0.1" },
     { name = "pyjwt", specifier = "==2.13.0" },
     { name = "requests", specifier = "==2.34.2" },
     { name = "sqlparse", specifier = "==0.5.5" },
@@ -262,6 +266,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-extensions"
+version = "4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/b3/ed0f54ed706ec0b54fd251cc0364a249c6cd6c6ec97f04dc34be5e929eac/django_extensions-4.1.tar.gz", hash = "sha256:7b70a4d28e9b840f44694e3f7feb54f55d495f8b3fa6c5c0e5e12bcb2aa3cdeb", size = 283078 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/96/d967ca440d6a8e3861120f51985d8e5aec79b9a8bdda16041206adfe7adc/django_extensions-4.1-py3-none-any.whl", hash = "sha256:0699a7af28f2523bf8db309a80278519362cd4b6e1fd0a8cd4bf063e1e023336", size = 232980 },
+]
+
+[[package]]
 name = "django-stubs"
 version = "6.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -410,6 +426,34 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/56/ad/44b06659949b243ae10112cd3b20a197f9bf3e81d5651379b9eb889bfaad/psycopg2_binary-2.9.12-cp314-cp314-musllinux_1_2_riscv64.whl", hash = "sha256:77b348775efd4cdab410ec6609d81ccecd1139c90265fa583a7255c8064bc03d", size = 3048977 },
     { url = "https://files.pythonhosted.org/packages/1d/f2/10a1bcebadb6aa55e280e1f58975c36a7b560ea525184c7aa4064c466633/psycopg2_binary-2.9.12-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:527e6342b3e44c2f0544f6b8e927d60de7f163f5723b8f1dfa7d2a84298738cd", size = 3351466 },
     { url = "https://files.pythonhosted.org/packages/20/be/b732c8418ffa5bcfda002890f5dc4c869fc17db66ff11f53b17cfe44afc0/psycopg2_binary-2.9.12-cp314-cp314-win_amd64.whl", hash = "sha256:f12ae41fcafadb39b2785e64a40f9db05d6de2ac114077457e0e7c597f3af980", size = 2848762 },
+]
+
+[[package]]
+name = "pygraphviz"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/44/efd880d59b94ef3b8c881a4c8ddcaa6f30036997b0ae94710c6f32aaa24c/pygraphviz-2.0.1.tar.gz", hash = "sha256:6f9850617f9444517641d2e14dfdb99ae8294cf7657be86c031fee8f7c54f863", size = 81998 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/96/cd843664b7f5886ed0a6abe2d1ece5096226d4a761649ce68f61d5e6e63f/pygraphviz-2.0.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9cb8eefde7d02eed48012142b8d0d39ff96d79f4e649263894b52012eb8fadd5", size = 1412294 },
+    { url = "https://files.pythonhosted.org/packages/69/6c/b7034ad130739964d3909ca289ec75d2fed2771a117df366c9e37e77c14d/pygraphviz-2.0.1-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:3a8773b52f71f1d97b186af7975e8a82f4bdc1353e562d6e55b1f729b855a996", size = 1584744 },
+    { url = "https://files.pythonhosted.org/packages/5b/b8/59883fb062ab0e222cbcb769a5df037e315e26390ee082110700ef711d66/pygraphviz-2.0.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:c639182f160986a7fdfad9e6946ab97fb90bc0d658cbacd4feada139e4db91e5", size = 5131332 },
+    { url = "https://files.pythonhosted.org/packages/8e/8e/ba68c0aaf34f4e12b218c8d52be3e7639e40938ce9e80a5e41e5bf84c9c1/pygraphviz-2.0.1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:db453fccc8d8c0e830dd81e37725a24e31a003e56d21b2af41c4e613b16e820d", size = 5357204 },
+    { url = "https://files.pythonhosted.org/packages/00/43/e4694b8e925deee427bb2116e826839bc8a63c6e01c1f98671fc80774949/pygraphviz-2.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:db4ed383701b10c9490131420a5dc9afe2b22e7b40b52795657fca1d7f9a151a", size = 6842379 },
+    { url = "https://files.pythonhosted.org/packages/b6/ba/e140a189f55ed2f400ab1582ba27ec15eb7325538d35354d0eb858dfb97f/pygraphviz-2.0.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:9df0588e2db8356eeadcec55edb1cd32cc642dd8b0b0ebfe169bf0567e6cd31a", size = 1412494 },
+    { url = "https://files.pythonhosted.org/packages/4a/3d/3e6f2f970742289acf09f123f07a8f1168bf5ad61dca3025e678d31c4434/pygraphviz-2.0.1-cp312-cp312-macosx_11_0_x86_64.whl", hash = "sha256:a8b6283075874bf4553081180e59e72470b43c59da5fd7530e9bc4f04a648d51", size = 1584971 },
+    { url = "https://files.pythonhosted.org/packages/fa/ff/94293746355f27cb8675fb442de52da1bb79e07fca07ebb06be7b397d1e1/pygraphviz-2.0.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:afb25def99ac094e7b733e9913071217ffc0b3d739ee72e2f3b465241ea64224", size = 5136518 },
+    { url = "https://files.pythonhosted.org/packages/4c/a4/18cb081de99c495b0270399124da2f23b7f77471ca93d9651297d169f035/pygraphviz-2.0.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:62c3d76165b283cf70a220de0e22889baee56f8fa3403590840d9eb841f627d2", size = 5362205 },
+    { url = "https://files.pythonhosted.org/packages/8d/2d/082fdd9b0b2c87a8da0cb280caa68e36808d424fe24a6f47d6928af28049/pygraphviz-2.0.1-cp312-cp312-win_amd64.whl", hash = "sha256:55d40e8362e5096b9d02f35007caab3246da4a14b72abaf131281dcac24c3dfa", size = 6842560 },
+    { url = "https://files.pythonhosted.org/packages/a5/0d/35cd48c3ab3494b92f64629df173fb3e12b814d86fcc43c9ff39ec0410c6/pygraphviz-2.0.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a393abac0af2f427698f98873b19631abf6311aba8eb90a01764c0904d1c842b", size = 1412167 },
+    { url = "https://files.pythonhosted.org/packages/ff/ee/44b0e01d38c0b5fc727ad30b5e55bc2d3cfb0ece2b7c1696003efbc0e7f8/pygraphviz-2.0.1-cp313-cp313-macosx_11_0_x86_64.whl", hash = "sha256:76802fe84d687e842371e27ff68a3d8015055cf4f3b141ae635ac05b1f7cccd2", size = 1584696 },
+    { url = "https://files.pythonhosted.org/packages/f7/8e/5ea7c33e0d6ecf6a08166a77da94d1058fa178eac7d73eeab2d4417bb8c3/pygraphviz-2.0.1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:5367adcae805c8adbc4f2f0f0f63ba51810674077ca8acf3255f71ce107287cd", size = 5134392 },
+    { url = "https://files.pythonhosted.org/packages/39/aa/2acddf77d9527c40ac2429114198afc0fca39821b059713ea6953816d733/pygraphviz-2.0.1-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:bca869f7894fe95cc33db210e7420bce67a3535a9329cb258856977a808350d9", size = 5360045 },
+    { url = "https://files.pythonhosted.org/packages/23/cd/98a3c1e70bc56455fc14c808db7d38e388f4e772ad38e8dbdb51eca7590e/pygraphviz-2.0.1-cp313-cp313-win_amd64.whl", hash = "sha256:721d9d46c1167d9044a00063374b9e34ebca637dab858b523da38e95188b666e", size = 6842392 },
+    { url = "https://files.pythonhosted.org/packages/2f/ae/24d1c0984fbb1c2f6231db7e031f7ed22420235575a93f489fc19b143797/pygraphviz-2.0.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:2969794de5128a5d5d2f9213d92ebdc724c60ffccae683c0b4141d1e4b160d78", size = 1412189 },
+    { url = "https://files.pythonhosted.org/packages/5f/85/d1e3c3817e22ae6caaf119b8cecd579b3bcd7718a9fef4176779a1648dd6/pygraphviz-2.0.1-cp314-cp314-macosx_11_0_x86_64.whl", hash = "sha256:fad64151a38dfd3eaf3ab01e3e9d193ab4e7c60cc8e7bc00f6a338e00f69a5d9", size = 1584772 },
+    { url = "https://files.pythonhosted.org/packages/bc/cf/b22dac556161adf1b90d87c2474eb4259df0f52a7d74f5b6c50b0faf4275/pygraphviz-2.0.1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:19092a42b570e579231d6c897476aed8d24b6c0b5a966d4d50ccb470c9778fe8", size = 5133963 },
+    { url = "https://files.pythonhosted.org/packages/78/d3/9a728b882805db71eb687fe8440df7b2912800856d4619ffe79b1824fe10/pygraphviz-2.0.1-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:71b13cfacb5ed6e4f5a966bf679e1d383ac70e0274cc74b29ce4b8e7e2709b46", size = 5359616 },
+    { url = "https://files.pythonhosted.org/packages/f3/7e/e2e90c36770fc7830c1eae81c91c653bbb41cc69c5e9b0af7ae0590f9cc2/pygraphviz-2.0.1-cp314-cp314-win_amd64.whl", hash = "sha256:8f3a37f5abf0873396243634f30f46dcae118a585cbef13554dd3eed0f9c67e0", size = 7063195 },
 ]
 
 [[package]]
