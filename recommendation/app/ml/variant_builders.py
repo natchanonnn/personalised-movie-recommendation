@@ -33,11 +33,11 @@ def build_collaborative_spec(num_unique_items: int) -> VariantSpec:
     """Matches CF.ipynb: SasRec.from_params, item_id + rating."""
     from replay.nn.sequential import SasRec as SasRecFromParams
 
-    EMBEDDING_DIM = 64
-    MAX_SEQ_LEN = 50
-    NUM_HEADS = 2
+    EMBEDDING_DIM = 128
+    MAX_SEQ_LEN = 60
+    NUM_HEADS = 4
     NUM_BLOCKS = 2
-    DROPOUT = 0.3
+    DROPOUT = 0.2
 
     tensor_schema = TensorSchema(
         [
