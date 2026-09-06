@@ -29,12 +29,6 @@ class RecommendationResponse(BaseModel):
     items: list[RecommendedItem]
 
 
-class VariantAssignmentResponse(BaseModel):
-    user_id: str
-    variant: str
-    bucket: float
-
-
 class HealthResponse(BaseModel):
     status: str
     loaded_variants: list[str]

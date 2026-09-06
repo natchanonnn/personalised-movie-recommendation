@@ -5,10 +5,8 @@ from app.api.schemas import (
     RecommendationRequest,
     RecommendationResponse,
     RecommendedItem,
-    VariantAssignmentResponse,
 )
 from app.core.config import get_settings
-from app.core.experiment import assign_variant, bucket_value
 from app.services.model_registry import registry
 from app.services.recommender import get_recommendations
 
@@ -44,11 +42,3 @@ async def recommend(request: RecommendationRequest) -> RecommendationResponse:
         variant=variant_name,
         items=[RecommendedItem(**item) for item in items],
     )
-
-
-@router.get("/v1/experiment/assignment/{user_id}", response_model=VariantAssignmentResponse)
-async def experiment_assignment(user_id: str) -> VariantAssignmentResponse:
-    settings = get_settings()
-    variant_name = assign_variant(user_id, settings.variants, settings.experiment_salt)
-    bucket = bucket_value(user_id, settings.experiment_salt)
-    return VariantAssignmentResponse(user_id=user_id, variant=variant_name, bucket=bucket)

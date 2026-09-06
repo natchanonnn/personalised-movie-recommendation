@@ -65,8 +65,7 @@ you have it; harmless to omit if the request happens to route to a content
 variant.
 
 ```bash
-curl localhost:8000/v1/experiment/assignment/u_123   # same deterministic A/B split as before
-curl localhost:8000/health                             # reports which of the 3 variants are loaded
+curl localhost:8000/health   # reports which of the 3 variants are loaded
 ```
 
 ## One thing I flagged rather than guessed at
