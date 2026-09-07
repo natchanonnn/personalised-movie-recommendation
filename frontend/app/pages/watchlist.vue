@@ -47,7 +47,7 @@ const authStore = useAuthStore()
 const interactionsStore = useInteractionsStore()
 
 if (!authStore.isAuthenticated) {
-  await navigateTo('/account/login')
+  await navigateTo('/')
 }
 
 const loading = ref(false)

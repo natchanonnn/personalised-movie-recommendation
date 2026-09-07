@@ -12,4 +12,6 @@ requests==2.34.2
 django-dotenv==1.4.2
 sqlparse==0.5.5
 tqdm==4.70.0
+django-extensions==4.1
+pygraphviz==2.0.1
 whitenoise==6.12.0

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
+    'django_extensions',
 
     # Local apps
     'movies',
@@ -73,6 +74,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+GRAPH_MODELS = {
+  'app_labels': ["movies", "accounts", "interactions", "recommendations"],
+}
 
 ROOT_URLCONF = "website.urls"
 

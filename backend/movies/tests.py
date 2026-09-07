@@ -66,7 +66,7 @@ class MovieSearchTests(APITestCase):
         for i in range(3, 13):
             Movie.objects.create(tmdb_id=i, title=f"Filler {i}", tmdb_vote_average=5.0)
 
-        with self.assertNumQueries(2):  # 1 for movies, 1 prefetch for genres
+        with self.assertNumQueries(3):  # 1 for movies, 1 prefetch for genres, 1 count for pagination
             response = self.client.get(self.search_url, {"limit": 50})
             list(response.data["results"])  # force serialization
 
