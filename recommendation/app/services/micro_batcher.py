@@ -34,7 +34,7 @@ from replay.nn.lightning.postprocessor import SeenItemsFilter
 from replay.nn.transform import CopyTransform, GroupTransform, RenameTransform
 from replay.nn.transform.template import make_default_sasrec_transforms
 
-from app.ml.explanations import explain_collaborative, explain_content
+from app.ml.explanations import explain_collaborative, explain_content, explain_hybrid
 from app.ml.variant_builders import VariantSpec
 from app.services.model_registry import ModelRegistry
 
@@ -190,28 +190,24 @@ class VariantMicroBatcher:
             max_k = max(req.k for req in batch)
             transforms = make_default_sasrec_transforms(self.spec.tensor_schema)
 
-            # Only CF.ipynb (collaborative) filters seen items at prediction
-            # time -- confirmed directly, HBF.ipynb/CBF.ipynb both construct
-            # PandasTopItemsCallback with no postprocessors at all, no
-            # seen_ids anywhere. Building SeenItemsFilter for content variants
-            # would need its own untested custom transform, not something
-            # either notebook validated -- so this stays collaborative-only,
-            # matching exactly what each notebook actually does. (Product-wise
-            # this means content-variant recommendations can include items the
-            # user has already seen; extending seen-item filtering to those
-            # two variants is a real gap worth closing later, just not by
-            # guessing at an unvalidated transform pipeline here.)
-            postprocessors = []
-            if self.spec.kind == "collaborative":
-                item_id_name = self.spec.tensor_schema.item_id_feature_name
-                transforms["predict"] = [
-                    RenameTransform({f"{item_id_name}_mask": "padding_mask"}),
-                    CopyTransform({item_id_name: "seen_ids"}),
-                    GroupTransform({"feature_tensors": self.spec.tensor_schema.names}),
-                ]
-                postprocessors = [
-                    SeenItemsFilter(item_count=self.registry.num_unique_items, seen_items_column="seen_ids")
-                ]
+            # All three variants filter seen items at prediction time -- this used
+            # to be collaborative-only (CF.ipynb), on the reasoning that HBF.ipynb/
+            # CBF.ipynb's own PandasTopItemsCallback calls had no postprocessors and
+            # building SeenItemsFilter for content variants was an unvalidated
+            # transform pipeline. Both notebooks have since been updated to prove out
+            # exactly this override (RenameTransform + CopyTransform + GroupTransform
+            # keyed off each variant's own tensor_schema, whether or not it also
+            # carries rating/genres/item_numerics) and apply SeenItemsFilter the same
+            # way CF.ipynb always did -- so it's applied unconditionally here too.
+            item_id_name = self.spec.tensor_schema.item_id_feature_name
+            transforms["predict"] = [
+                RenameTransform({f"{item_id_name}_mask": "padding_mask"}),
+                CopyTransform({item_id_name: "seen_ids"}),
+                GroupTransform({"feature_tensors": self.spec.tensor_schema.names}),
+            ]
+            postprocessors = [
+                SeenItemsFilter(item_count=self.registry.num_unique_items, seen_items_column="seen_ids")
+            ]
 
             parquet_module = ParquetModule(
                 predict_path=predict_path,
@@ -248,6 +244,27 @@ class VariantMicroBatcher:
                     explain_collaborative(
                         history["item_id"], history["rating"], rec_item_id,
                         item_embeddings, self.registry.item_titles, rec_title,
+                    )
+                )
+        elif self.spec.name == "hybrid_content":
+            # hybrid_content is the only content variant whose embedder keeps a real
+            # item-id embedding (pure_content zeroes it out in forward()), so it's
+            # also the only one that can honestly cite a collaborative-filtering
+            # reason alongside the content-based ones. See explain_hybrid's docstring.
+            item_collab_embeddings = (
+                lightning_module.model.body.embedder.get_item_weights().detach().cpu().numpy()
+            )
+            for row in result.itertuples(index=False):
+                history = content_histories.get(int(row.user_id), [])
+                if not history:
+                    explanations.append(None)
+                    continue
+                rec_item_id = int(row.item_id)
+                rec_title = self.registry.item_metadata.loc[rec_item_id, "title"]
+                explanations.append(
+                    explain_hybrid(
+                        history, rec_item_id, self.registry.item_metadata,
+                        item_collab_embeddings, rec_title,
                     )
                 )
         else:
