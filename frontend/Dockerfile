@@ -10,8 +10,11 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NUXT_PUBLIC_API_BASE is also read at runtime (see docker-compose.yml) --
-# this build-time value is only a fallback for `nuxt build`'s prerendered "/".
-ENV NUXT_PUBLIC_API_BASE=http://localhost:8000/v1
+# this build-time value only affects `nuxt build`'s prerendered "/", which
+# bakes in whatever it was at build time. Override via --build-arg for
+# deployments where the API isn't on localhost.
+ARG NUXT_PUBLIC_API_BASE=http://localhost:8000/v1
+ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 # Bundling the Nitro server OOMs at Node's default heap cap (~2GB) inside
 # typical Docker build memory limits -- raise it.
 ENV NODE_OPTIONS=--max-old-space-size=3072
