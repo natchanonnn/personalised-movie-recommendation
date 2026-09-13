@@ -64,6 +64,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "website.middleware.no_index_middleware",
     # Serves /static/ (admin + swagger UI assets)
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -83,14 +84,16 @@ ROOT_URLCONF = "website.urls"
 
 # Nuxt dev server origin. The JWT now lives in an httpOnly cookie
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [ # TODO: Configure this for production, e.g. "https://myapp.com"
+CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    *[o for o in os.environ.get("EXTRA_ALLOWED_ORIGINS", "").split(",") if o]
 ]
 
-CSRF_TRUSTED_ORIGINS = [ # TODO: Configure this for production, e.g. "https://myapp.com"
+CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:3000",
+    *[o for o in os.environ.get("EXTRA_ALLOWED_ORIGINS", "").split(",") if o]
 ]
 
 # Recommendation service (FastAPI, see /recommendation)

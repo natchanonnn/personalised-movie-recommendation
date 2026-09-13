@@ -1,64 +1,51 @@
-# Nuxt Starter Template
+# Frontend
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Nuxt 4 + Nuxt UI single-page app for the movie recommendation platform: search, movie details, ratings/watchlist, and personalized recommendations.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+## Path
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
-
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
-
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
+```
+frontend/
+├── app/
+│   ├── pages/          # File-based routes (index, movie/[id], my-ratings, watchlist, recommendations, account/*)
+│   ├── components/     # MovieCard, MovieHero, MovieRecommendationCard
+│   ├── stores/         # Pinia stores: auth.ts, movie.ts, interactions.ts
+│   ├── utils/           # tmdb.ts (TMDB image URL helpers)
+│   ├── assets/css/      # Global styles
+│   └── app.config.ts, app.vue
+├── public/              # Static files
+├── nuxt.config.ts       # runtimeConfig.public.apiBase points at the backend API
+├── Dockerfile
+└── package.json
 ```
 
-## Deploy your own
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+## Develop
 
-## Setup
+Requires Node 22+ and pnpm.
 
-Make sure to install the dependencies:
-
+### Install dependencies
 ```bash
 pnpm install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
+### Run in development mode
 ```bash
 pnpm dev
 ```
 
-## Production
-
-Build the application for production:
+Other useful commands during development:
 
 ```bash
-pnpm build
+pnpm lint        # eslint
+pnpm typecheck   # nuxt typecheck
+pnpm build && pnpm preview   # build for production and preview it locally
 ```
 
-Locally preview production build:
+## Deploy
+
+Built and run as a Docker image (see [Dockerfile](Dockerfile)), orchestrated by the root [docker-compose.yml](../docker-compose.yml):
 
 ```bash
-pnpm preview
+docker compose up frontend
 ```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
-
-## Renovate integration
-
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
